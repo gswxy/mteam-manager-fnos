@@ -7,7 +7,7 @@
             "protocol": "",
             "gatewayPrefix": "/app/mteam-manager",
             "gatewaySocket": "app.sock",
-            "url": "/app/mteam-manager",
+            "url": "/app/mteam-manager/",
             "allUsers": false
         }
     }

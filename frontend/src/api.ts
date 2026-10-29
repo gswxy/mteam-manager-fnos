@@ -1,5 +1,8 @@
-// 相对路径：兼容 fnOS 统一网关前缀（/app/mteam-manager）与直接访问两种部署形态
-const base = import.meta.env.DEV ? '' : 'api'
+// 运行时前缀推导：fnOS 统一网关下页面位于 /app/mteam-manager/，
+// API 需带上相同前缀；直连（开发/TCP）模式无前缀
+const prefix = import.meta.env.DEV
+  ? ''
+  : (location.pathname.startsWith('/app/mteam-manager') ? '/app/mteam-manager' : '')
 
 export class ApiError extends Error {
   status: number
@@ -10,7 +13,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-  const resp = await fetch(base + path, {
+  const resp = await fetch(prefix + path, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   })

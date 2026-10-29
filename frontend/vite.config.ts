@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  // 绝对 base 与 fnOS 统一网关前缀一致（后端中间件会剥离该前缀，直接访问同样可用）
+  base: '/app/mteam-manager/',
   server: {
     port: 5180,
     proxy: {

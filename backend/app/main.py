@@ -6,9 +6,15 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+# Windows 注册表可能把 .js 映射为 text/html，强制纠正（NAS 上无此问题）
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
+mimetypes.add_type("image/svg+xml", ".svg")
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse

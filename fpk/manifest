@@ -1,5 +1,5 @@
 appname               = mteam-manager
-version               = 1.0.0
+version               = 1.0.1
 display_name          = 馒头管家
 desc                  = M-Team（馒头 PT 站）管理工具：影视发现、下载管理、多账号中心与自动化下载/清理规则，原生对接飞牛下载中心。作者 gswxy（https://gswxy.com），开源仓库 https://github.com/gswxy/mteam-manager-fnos
 source                = thirdparty

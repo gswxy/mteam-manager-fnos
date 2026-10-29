@@ -177,7 +177,11 @@ class MTeamClient:
 
     async def close(self) -> None:
         if self._client and not self._client.is_closed:
-            await self._client.aclose()
+            try:
+                await self._client.aclose()
+            except Exception:  # noqa: BLE001 - 事件循环已关闭等场景无需上报
+                pass
+        self._client = None
 
     async def _request(self, path: str, payload: dict | None = None,
                        form: dict | None = None, skip_limit: bool = False) -> Any:

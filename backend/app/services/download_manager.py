@@ -84,8 +84,11 @@ class DownloadManager:
         return self._limiter
 
     async def close(self) -> None:
-        for c in self._mt_clients.values():
-            await c.close()
+        for c in list(self._mt_clients.values()):
+            try:
+                await c.close()
+            except Exception:  # noqa: BLE001 - 跨事件循环的客户端关闭失败可忽略
+                pass
         self._mt_clients.clear()
 
     def default_account_id(self) -> int | None:

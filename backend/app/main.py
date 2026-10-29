@@ -37,8 +37,14 @@ async def lifespan(app: FastAPI):
     logger.info("mteam-manager v%s started, data=%s", __version__, settings.data_dir)
     yield
     from .services.scheduler import stop as stop_scheduler
-    stop_scheduler()
-    await download_manager.manager.close()
+    try:
+        stop_scheduler()
+    except Exception:  # noqa: BLE001 - 关闭阶段任何异常都不应阻断退出
+        logger.warning("scheduler stop error", exc_info=True)
+    try:
+        await download_manager.manager.close()
+    except Exception:  # noqa: BLE001
+        logger.warning("manager close error", exc_info=True)
     logger.info("mteam-manager stopped")
 
 

@@ -108,23 +108,31 @@ async def run_with_concurrency_guard(coro) -> None:
 
 
 def start() -> None:
+    # 幂等：测试中多个 TestClient 生命周期会反复触发
     if scheduler.running:
         return
+    try:
+        _start_jobs()
+        scheduler.start()
+        logger.info("scheduler started")
+    except Exception as e:  # 重复启动等环境差异不阻断服务
+        logger.warning("scheduler start skipped: %s", e)
+
+
+def _start_jobs() -> None:
     auto_cfg = get_setting("auto_download") or {}
     cleanup_cfg = get_setting("auto_cleanup") or {}
     scheduler.add_job(refresh_accounts, IntervalTrigger(
         seconds=int((get_setting("mteam_global") or {}).get("account_sync_interval") or 600)),
-        id="refresh_accounts", max_instances=1, coalesce=True)
+        id="refresh_accounts", max_instances=1, coalesce=True, replace_existing=True)
     scheduler.add_job(sync_status, IntervalTrigger(seconds=60),
-                      id="sync_status", max_instances=1, coalesce=True)
+                      id="sync_status", max_instances=1, coalesce=True, replace_existing=True)
     scheduler.add_job(auto_download_job, IntervalTrigger(
         seconds=max(300, int(auto_cfg.get("interval_minutes") or 30) * 60)),
-        id="auto_download", max_instances=1, coalesce=True)
+        id="auto_download", max_instances=1, coalesce=True, replace_existing=True)
     scheduler.add_job(auto_cleanup_job, IntervalTrigger(
         seconds=max(600, int(cleanup_cfg.get("interval_minutes") or 60) * 60)),
-        id="auto_cleanup", max_instances=1, coalesce=True)
-    scheduler.start()
-    logger.info("scheduler started")
+        id="auto_cleanup", max_instances=1, coalesce=True, replace_existing=True)
 
 
 def stop() -> None:

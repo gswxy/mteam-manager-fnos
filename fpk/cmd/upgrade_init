@@ -1,0 +1,3 @@
+#!/bin/bash
+# 升级前钩子（幂等）：用户数据在 $TRIM_PKGVAR，target 替换不影响
+exit 0

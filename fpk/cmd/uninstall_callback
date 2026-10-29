@@ -1,0 +1,9 @@
+#!/bin/bash
+# 卸载清理：按用户选择处理应用数据；绝不触碰任何已下载的影视文件
+set -u
+DATA="${TRIM_PKGVAR}"
+if [ "${wizard_data_action:-keep}" = "delete" ]; then
+    rm -rf "${DATA}/data" "${DATA}/torrents"
+fi
+# 保留场景：数据留在 $TRIM_PKGVAR 供重装恢复
+exit 0

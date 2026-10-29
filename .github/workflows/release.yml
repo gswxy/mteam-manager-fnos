@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: 构建并发布 FPK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 构建 x86 FPK
+        run: bash scripts/build_fpk.sh x86
+      - name: 构建 arm64 FPK
+        run: bash scripts/build_fpk.sh arm
+
+      - name: 生成校验值
+        run: |
+          cd dist-fpk
+          for f in *.fpk; do sha256sum "$f" > "$f.sha256"; done
+          cat *.sha256
+          ls -lh
+
+      - name: 创建 GitHub Release 并上传产物
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            # 馒头管家 ${{ github.ref_name }}
+
+            ## 安装
+            1. 下载对应架构的 `.fpk`（x86_64 机型用 `_x86`，ARM64 机型用 `_arm`）
+            2. 飞牛 fnOS → 应用中心 → 手动安装
+            3. 安装后在「设置」中配置 M-Team API Key 与 fnOS 下载中心账号
+
+            完整说明见 [README](https://github.com/gswxy/mteam-manager-fnos#readme)。
+
+            ## 校验
+            `.sha256` 文件包含安装包校验值：
+            ```bash
+            sha256sum -c mteam-manager_*.fpk.sha256
+            ```
+
+            ---
+            © gswxy · [gswxy.com](https://gswxy.com) · [GitHub](https://github.com/gswxy)
+          files: |
+            dist-fpk/*.fpk
+            dist-fpk/*.sha256

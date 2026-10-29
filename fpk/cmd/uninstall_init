@@ -1,0 +1,7 @@
+#!/bin/bash
+# 卸载前钩子：停止服务（由系统调用 main stop，这里兜底）
+set -u
+if [ -x "${TRIM_APPDEST}/cmd/main" ]; then
+    "${TRIM_APPDEST}/cmd/main" stop 2>/dev/null || true
+fi
+exit 0

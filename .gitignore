@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# 运行数据与密钥（绝不提交）
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+secrets/
+torrents/
+*.torrent
+!tests/fixtures/*.torrent
+
+# 构建产物
+build/
+dist-fpk/
+*.fpk
+fpk/runtime/
+fpk/app/backend-runtime/
+release/
+
+# 研究资料（不属于项目发布内容）
+.research/
+
+# IDE / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/

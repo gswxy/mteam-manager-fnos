@@ -1,0 +1,8 @@
+#!/bin/bash
+# 升级后钩子（幂等）：确保数据目录存在、运行时可执行
+set -u
+mkdir -p "${TRIM_PKGVAR}/data" "${TRIM_PKGVAR}/torrents"
+find "${TRIM_APPDEST}/app/runtime/bin" -type f 2>/dev/null | while read -r f; do
+    chmod +x "$f" 2>/dev/null || true
+done
+exit 0

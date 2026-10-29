@@ -1,0 +1,77 @@
+#!/bin/bash
+# 馒头管家生命周期：服务启动/停止/状态
+# 参数: start|stop|status   退出码: 0=成功/运行中 1=失败 3=未运行
+# 注意：$TRIM_APPDEST 即 FPK 的 app/ 目录（= /var/apps/<appname>/target），
+#       backend / runtime / frontend-dist 位于其直接下级
+set -u
+
+APP="${TRIM_APPDEST}"
+DATA="${TRIM_PKGVAR}/data"
+PY="${APP}/runtime/bin/python3"
+PID_FILE="${DATA}/app.pid"
+SOCK="${APP}/app.sock"
+LOG="${DATA}/app.log"
+
+is_running() {
+    [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null
+}
+
+case "$1" in
+start)
+    mkdir -p "$DATA" "${TRIM_PKGVAR}/torrents"
+    chmod 700 "$DATA" 2>/dev/null || true
+    if is_running; then
+        echo "already running: $(cat "$PID_FILE")"
+        exit 0
+    fi
+    rm -f "$SOCK" "$PID_FILE"
+    if [ ! -x "$PY" ]; then
+        echo "python runtime missing: $PY" >> "${TRIM_TEMP_LOGFILE:-$LOG}"
+        exit 1
+    fi
+    cd "${APP}/backend" || exit 1
+    TRIM_APPDEST="$APP" TRIM_PKGVAR="$TRIM_PKGVAR" \
+    TRIM_APPNAME="${TRIM_APPNAME:-mteam-manager}" \
+    MTM_STATIC_DIR="${APP}/frontend-dist" \
+        nohup "$PY" -m app.main >> "$LOG" 2>&1 &
+    echo $! > "$PID_FILE"
+    # 等待 unix socket 就绪（统一网关入口）
+    for _ in $(seq 1 40); do
+        if [ -S "$SOCK" ]; then
+            chmod 660 "$SOCK" 2>/dev/null || true
+            echo "started: $(cat "$PID_FILE")"
+            exit 0
+        fi
+        if ! is_running; then
+            echo "process exited during startup, see $LOG" >> "${TRIM_TEMP_LOGFILE:-$LOG}"
+            break
+        fi
+        sleep 1
+    done
+    rm -f "$PID_FILE"
+    exit 1
+    ;;
+stop)
+    if is_running; then
+        PID="$(cat "$PID_FILE")"
+        kill "$PID" 2>/dev/null || true
+        for _ in $(seq 1 20); do
+            kill -0 "$PID" 2>/dev/null || break
+            sleep 0.5
+        done
+        kill -9 "$PID" 2>/dev/null || true
+    fi
+    rm -f "$PID_FILE" "$SOCK"
+    exit 0
+    ;;
+status)
+    if is_running; then
+        exit 0
+    else
+        exit 3
+    fi
+    ;;
+*)
+    exit 1
+    ;;
+esac

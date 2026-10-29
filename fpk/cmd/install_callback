@@ -1,0 +1,24 @@
+#!/bin/bash
+# 安装后：准备数据目录并导入向导配置（fnOS 下载中心对接凭据，可选）
+set -u
+DATA="${TRIM_PKGVAR}/data"
+mkdir -p "$DATA" "${TRIM_PKGVAR}/torrents"
+chmod 700 "$DATA"
+
+# 向导可选收集的 fnOS 账号（用于应用内调用下载中心接口）；仅在填写时导入
+if [ -n "${wizard_fnos_username:-}" ]; then
+    cat > "${DATA}/fnos-setup.json" <<EOF
+{
+  "username": "${wizard_fnos_username}",
+  "password": "${wizard_fnos_password:-}",
+  "ws_url": "${wizard_fnos_ws_url:-ws://127.0.0.1:5666/websocket}"
+}
+EOF
+    chmod 600 "${DATA}/fnos-setup.json"
+fi
+
+# 二进制可执行权限兜底
+find "${TRIM_APPDEST}/app/runtime/bin" -type f 2>/dev/null | while read -r f; do
+    chmod +x "$f" 2>/dev/null || true
+done
+exit 0

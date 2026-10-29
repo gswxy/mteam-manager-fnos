@@ -304,7 +304,14 @@ async def run_scan(dry_run: bool = False, max_add: int | None = None) -> dict:
 
 
 def _category_of(mt_cat: str) -> str:
-    for prefix, cat in (("401", "movie"), ("402", "tv"), ("403", "anime"), ("404", "show")):
-        if (mt_cat or "").startswith(prefix):
-            return cat
+    """M-Team 分类码 -> 手动/自动目录类别。"""
+    from .mteam import MT_CATEGORY_GROUPS
+    cat = mt_cat or ""
+    for g in MT_CATEGORY_GROUPS:
+        if any(cat.startswith(code) for code in g["codes"]):
+            if g["key"] == "tv":
+                return "tv"
+            if g["key"] in ("doc", "music", "sport", "game", "other"):
+                return "other"
+            return g["key"]
     return "other"

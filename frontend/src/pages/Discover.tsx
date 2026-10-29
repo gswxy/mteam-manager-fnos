@@ -8,16 +8,27 @@ const TABS = [
   { key: 'free', label: '免费资源' },
   { key: 'rating', label: '豆瓣高分' },
 ]
-const CATS = [
-  { key: 'all', label: '全部' },
-  { key: 'movie', label: '电影' },
-  { key: 'tv', label: '电视剧' },
-  { key: 'anime', label: '动漫' },
-  { key: 'show', label: '综艺' },
+// 馒头站点真实分类（与后端 MT_CATEGORY_GROUPS 对应，启动时从接口刷新）
+const DEFAULT_GROUPS = [
+  { key: 'movie', name: '电影', children: [
+    { code: '401', name: 'SD' }, { code: '419', name: 'HD' }, { code: '420', name: 'DVDiSo' },
+    { code: '421', name: 'Blu-Ray' }, { code: '439', name: 'Remux' }] },
+  { key: 'tv', name: '影剧/综艺', children: [
+    { code: '403', name: 'SD' }, { code: '402', name: 'HD' }, { code: '435', name: 'DVDiSo' },
+    { code: '438', name: 'BD' }] },
+  { key: 'anime', name: '动画', children: [] },
+  { key: 'doc', name: '纪录', children: [] },
+  { key: 'music', name: '音乐', children: [
+    { code: '434', name: '无损' }, { code: '406', name: '演唱会' }] },
+  { key: 'sport', name: '体育', children: [] },
+  { key: 'game', name: '游戏', children: [
+    { code: '423', name: 'PC游戏' }, { code: '448', name: 'TV游戏' }] },
+  { key: 'other', name: '其他', children: [
+    { code: '427', name: '电子书' }, { code: '442', name: '有声书' },
+    { code: '451', name: '教育影片' }, { code: '422', name: '软件' }, { code: '409', name: '杂项' }] },
 ]
-const CAT_LABEL: Record<string, string> = {
-  movie: '电影', tv: '电视剧', anime: '动漫', show: '综艺', other: '其他',
-}
+const GROUP_LABEL: Record<string, string> = Object.fromEntries(
+  DEFAULT_GROUPS.map(g => [g.key, g.name]))
 const QUALITIES = ['4k', '1080p', '720p']
 const SIZES = [
   { key: '', label: '任意大小' },
@@ -44,6 +55,7 @@ export default function DiscoverPage() {
   const toast = useToast()
   const [tab, setTab] = useState('latest')
   const [cat, setCat] = useState('all')
+  const [groups, setGroups] = useState(DEFAULT_GROUPS)
   const [q, setQ] = useState('')
   const [quality, setQuality] = useState<string[]>([])
   const [sizeRange, setSizeRange] = useState('')
@@ -56,6 +68,15 @@ export default function DiscoverPage() {
   const [detail, setDetail] = useState<Media | null>(null)
   const [torrentDetail, setTorrentDetail] = useState<Torrent | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [downloading, setDownloading] = useState<string | null>(null)
+
+  useEffect(() => {
+    get('/api/discover/categories').then((d: any) => {
+      if (d.groups?.length) setGroups(d.groups)
+    }).catch(() => {})
+  }, [])
+
+  const activeGroup = groups.find(g => g.key === cat)
 
   const load = useCallback(async (p = 1) => {
     setLoading(true)
@@ -123,12 +144,15 @@ export default function DiscoverPage() {
 
   async function download(t: Torrent) {
     const m = detail || items.find(x => x.versions.some(v => v.id === t.id))
-    const cat = m && m.category in CAT_LABEL ? m.category : 'other'
+    const cat = m && m.category in GROUP_LABEL ? m.category : 'other'
+    setDownloading(t.id)
     try {
-      await post(`/api/discover/torrent/${t.id}/download`, { category: cat })
-      toast('已添加到下载中心', 'ok')
+      const res = await post<any>(`/api/discover/torrent/${t.id}/download`, { category: cat })
+      toast(`已添加到下载中心${res.size ? `（${(res.size / 1024 ** 3).toFixed(1)}GB）` : ''}`, 'ok')
     } catch (e: any) {
-      toast(e.message, 'error')
+      toast(e.status === 502 ? `下载失败：${e.message}（可在设置中配置代理）` : `下载失败：${e.message}`, 'error')
+    } finally {
+      setDownloading(null)
     }
   }
 
@@ -162,12 +186,26 @@ export default function DiscoverPage() {
               onClick={() => { setQ(''); setTab(t.key) }}>{t.label}</button>
           ))}
           <span style={{ width: 1, height: 18, background: 'var(--border)' }} />
-          {CATS.map(c => (
+          <button className={`btn btn-sm btn-ghost${cat === 'all' ? ' btn-primary' : ''}`}
+            style={cat === 'all' ? {} : { color: 'var(--text-2)', fontWeight: 600 }}
+            onClick={() => setCat('all')}>全部</button>
+          {groups.map(c => (
             <button key={c.key} className={`btn btn-sm btn-ghost${cat === c.key ? ' btn-primary' : ''}`}
-              style={cat === c.key ? {} : { color: 'var(--text-2)' }}
-              onClick={() => setCat(c.key)}>{c.label}</button>
+              style={cat === c.key ? {} : { color: 'var(--text-2)', fontWeight: 600 }}
+              onClick={() => setCat(c.key)}>{c.name}</button>
           ))}
         </div>
+        {activeGroup && activeGroup.children?.length > 0 && (
+          <div className="row" style={{ marginTop: 6 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>子分类：</span>
+            {activeGroup.children.map((sub: any) => (
+              <button key={sub.code}
+                className={`btn btn-sm${cat === sub.code ? ' btn-primary' : ''}`}
+                style={cat === sub.code ? {} : { padding: '2px 8px', fontSize: 12 }}
+                onClick={() => setCat(sub.code)}>{sub.name}</button>
+            ))}
+          </div>
+        )}
         <div className="row" style={{ marginTop: 8 }}>
           {QUALITIES.map(qq => (
             <button key={qq} className={`btn btn-sm${quality.includes(qq) ? ' btn-primary' : ''}`}
@@ -209,7 +247,7 @@ export default function DiscoverPage() {
                 <div className="media-meta">
                   <div className="media-title" title={m.title}>{m.title}</div>
                   <div className="media-sub">
-                    {CAT_LABEL[m.category] || '其他'} · {m.version_count} 个版本 · {fmtSize(m.max_size)}
+                    {GROUP_LABEL[m.category] || '其他'} · {m.version_count} 个版本 · {fmtSize(m.max_size)}
                   </div>
                 </div>
               </div>
@@ -239,7 +277,7 @@ export default function DiscoverPage() {
                 <div className="row" style={{ marginBottom: 8 }}>
                   {detail.douban_rating && <span>豆瓣 <b style={{ color: 'var(--accent)' }}>{detail.douban_rating}</b></span>}
                   {detail.imdb_rating && <span style={{ color: 'var(--text-3)' }}>IMDb {detail.imdb_rating}</span>}
-                  <span style={{ color: 'var(--text-3)' }}>{CAT_LABEL[detail.category] || '其他'}</span>
+                  <span style={{ color: 'var(--text-3)' }}>{GROUP_LABEL[detail.category] || '其他'}</span>
                 </div>
                 <div style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 10 }}>
                   共 {detail.version_count} 个资源版本 · 累计做种 {fmtNum(detail.seeders_total)} 人
@@ -263,8 +301,9 @@ export default function DiscoverPage() {
                       <td>{fmtNum(v.seeders)}</td>
                       <td><DiscountBadge discount={v.discount} /></td>
                       <td>{fmtTime(v.created_date)}</td>
-                      <td><button className="btn btn-sm btn-primary"
-                        onClick={e => { e.stopPropagation(); download(v) }}>下载</button></td>
+                      <td><button className="btn btn-sm btn-primary" disabled={downloading === v.id}
+                        onClick={e => { e.stopPropagation(); download(v) }}>
+                        {downloading === v.id ? '添加中…' : '下载'}</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -282,8 +321,9 @@ export default function DiscoverPage() {
             <button className="btn" onClick={() => torrentDetail && favorite(torrentDetail)}>
               {torrentDetail?.favorited ? '★ 已收藏' : '☆ 收藏'}
             </button>
-            <button className="btn btn-primary" onClick={() => torrentDetail && download(torrentDetail)}>
-              手动下载
+            <button className="btn btn-primary" disabled={downloading === (torrentDetail?.id ?? '')}
+              onClick={() => torrentDetail && download(torrentDetail)}>
+              {downloading === (torrentDetail?.id ?? '') ? '添加中…' : '手动下载'}
             </button>
           </>
         }>

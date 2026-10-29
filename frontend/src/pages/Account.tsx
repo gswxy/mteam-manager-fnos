@@ -125,7 +125,14 @@ export default function AccountPage() {
                     <td>
                       {a.last_error ? <Badge kind="danger">连接异常</Badge> :
                         a.enabled ? <Badge kind="ok">正常</Badge> : <Badge kind="gray">已禁用</Badge>}
-                      {a.last_error && <div style={{ fontSize: 11, color: 'var(--text-3)', maxWidth: 160 }}>{a.last_error}</div>}
+                      {a.last_error && <div style={{ fontSize: 11, color: 'var(--text-3)', maxWidth: 200 }}>
+                        {a.last_error}
+                        {/Connect|Timeout|网络/i.test(a.last_error) && (
+                          <div style={{ color: 'var(--warn)', marginTop: 2 }}>
+                            NAS 可能无法直连 M-Team，请到「设置 → 馒头账号」配置代理或更换 API 地址
+                          </div>
+                        )}
+                      </div>}
                     </td>
                     <td>
                       <div className="row">
@@ -179,13 +186,17 @@ export default function AccountPage() {
         <label className="field"><span>备注名称</span>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
             placeholder="例如：主账号" /></label>
-        <label className="field"><span>API 地址</span>
-          <select value={form.api_url} onChange={e => setForm({ ...form, api_url: e.target.value })}>
-            <option value="https://api.m-team.cc">api.m-team.cc（默认）</option>
-            <option value="https://kp.m-team.cc">kp.m-team.cc</option>
-            <option value="https://xp.m-team.cc">xp.m-team.cc</option>
-          </select>
-          <div className="help">与你在馒头站使用的站点域名对应</div></label>
+        <label className="field"><span>API 地址（可从下拉选择或自行输入）</span>
+          <input list="mt-api-servers" value={form.api_url}
+            onChange={e => setForm({ ...form, api_url: e.target.value })}
+            placeholder="https://api.m-team.cc" />
+          <datalist id="mt-api-servers">
+            <option value="https://api.m-team.cc">主站（默认）</option>
+            <option value="https://api.m-team.io">备用 .io</option>
+            <option value="https://kp.m-team.cc">KP 站</option>
+            <option value="https://xp.m-team.cc">XP 站</option>
+          </datalist>
+          <div className="help">与你在馒头站使用的站点域名对应；直连不通时可尝试其他地址或在「设置 → 馒头账号」配置代理</div></label>
         <label className="field"><span>API Key（存取令牌）</span>
           <input value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })}
             placeholder="馒头站 → 控制面板 → 实验室 → 存取令牌" />

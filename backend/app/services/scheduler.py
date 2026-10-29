@@ -30,7 +30,8 @@ async def refresh_accounts() -> None:
     for row in rows:
         from .mteam import MTeamClient
         client = MTeamClient(decrypt(row["api_key_enc"]), row["api_url"],
-                             limiter=manager._limiter_shared())
+                             limiter=manager._limiter_shared(),
+                             proxy=manager._proxy())
         try:
             profile = await client.member_profile()
             seeding = {}

@@ -30,10 +30,8 @@ async def search(q: str = Query("", max_length=120),
     account_id = manager.default_account_id()
     if account_id is None:
         raise HTTPException(400, "请先在「设置 → 馒头账号」中添加账号")
-    categories = None
-    if category != "all":
-        from ..services.mteam import UI_CATEGORY_MAP
-        categories = UI_CATEGORY_MAP.get(category)
+    from ..services.mteam import category_codes_of
+    categories = category_codes_of(category)
     mt = manager.mteam(account_id)
     try:
         await discover.search_and_cache(mt, q, categories=categories, discount=discount)
@@ -42,6 +40,13 @@ async def search(q: str = Query("", max_length=120),
     data = discover.browse("latest", category, page, page_size)
     data["keyword"] = q
     return data
+
+
+@router.get("/categories")
+def categories():
+    """馒头站点真实分类结构（分组 + 子分类码）。"""
+    from ..services.mteam import MT_CATEGORY_GROUPS
+    return {"groups": MT_CATEGORY_GROUPS}
 
 
 @router.get("/refresh")

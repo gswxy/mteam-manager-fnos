@@ -72,7 +72,7 @@ class DownloadManager:
         if row is None:
             raise MTeamError("账号不存在或已禁用")
         client = MTeamClient(decrypt(row["api_key_enc"]), row["api_url"],
-                             limiter=self._limiter_shared())
+                             limiter=self._limiter_shared(), proxy=self._proxy())
         self._mt_clients[account_id] = client
         return client
 
@@ -82,6 +82,9 @@ class DownloadManager:
             interval = float((get_setting("mteam_global") or {}).get("request_interval") or 4)
             self._limiter = RateLimiter(min_interval=max(1.0, interval))
         return self._limiter
+
+    def _proxy(self) -> str:
+        return ((get_setting("mteam_global") or {}).get("proxy") or "").strip()
 
     async def close(self) -> None:
         for c in list(self._mt_clients.values()):

@@ -10,7 +10,8 @@ import re
 from typing import Any
 
 from ..database import db
-from .mteam import (UI_CATEGORY_MAP, MTeamClient, MTeamError, parse_torrent)
+from .mteam import (MT_CATEGORY_GROUPS, UI_CATEGORY_MAP, MTeamClient, MTeamError,
+                    category_codes_of, parse_torrent)
 
 TITLE_NOISE = re.compile(
     r"[\[\(].*?[\]\)]|[Ｗｗ]ww\..*|【.*?】", re.S)
@@ -130,9 +131,11 @@ def _display_title(t: dict) -> str:
 
 
 def _ui_category(mt_category: str) -> str:
-    for prefix, ui in (("401", "movie"), ("402", "tv"), ("403", "anime"), ("404", "show")):
-        if mt_category.startswith(prefix):
-            return ui
+    """M-Team 分类码 -> 界面分组（与站点分类结构一致）。"""
+    cat = mt_category or ""
+    for g in MT_CATEGORY_GROUPS:
+        if any(cat.startswith(code) for code in g["codes"]):
+            return g["key"]
     return "other"
 
 
@@ -148,9 +151,10 @@ def browse(tab: str, category: str | None, page: int, page_size: int) -> dict:
         ).fetchall()
     items = [dict(r) for r in rows]
     if category and category != "all":
-        wanted = UI_CATEGORY_MAP.get(category, [])
-        items = [t for t in items
-                 if any((t.get("category") or "").startswith(w[:3]) for w in wanted)]
+        wanted = category_codes_of(category)
+        if wanted:
+            items = [t for t in items
+                     if any((t.get("category") or "").startswith(w) for w in wanted)]
     groups = aggregate(items)
 
     if tab == "free":

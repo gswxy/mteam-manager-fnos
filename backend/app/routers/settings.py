@@ -23,13 +23,15 @@ router = APIRouter(prefix="/api/settings", tags=["settings"], dependencies=[Depe
 class MTeamGlobalIn(BaseModel):
     request_interval: float = Field(default=4, ge=1, le=60)
     account_sync_interval: int = Field(default=600, ge=60, le=86400)
+    proxy: str = Field(default="", max_length=200)
 
 
 @router.get("/mteam")
 def get_mteam():
     cfg = get_setting("mteam_global", {}) or {}
     return {"request_interval": cfg.get("request_interval", 4),
-            "account_sync_interval": cfg.get("account_sync_interval", 600)}
+            "account_sync_interval": cfg.get("account_sync_interval", 600),
+            "proxy": cfg.get("proxy", "")}
 
 
 @router.put("/mteam")

@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from './ui'
 
+const LOGO = import.meta.env.BASE_URL + 'favicon.svg'
+
 const icon = (d: string) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
     strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: d }} />
@@ -27,7 +29,7 @@ export default function Layout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src="/favicon.svg" alt="logo" />
+          <img className="brand-logo" src={LOGO} alt="logo" />
           <div>
             <div className="brand-name">馒头管家</div>
             <div className="brand-sub">M-Team Manager</div>
@@ -53,7 +55,7 @@ export default function Layout() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div className="topbar">
-          <img src="/favicon.svg" style={{ width: 26, height: 26 }} alt="" />
+          <img src={LOGO} style={{ width: 26, height: 26 }} alt="" />
           <select value={loc.pathname} onChange={e => navigate(e.target.value)}>
             {NAV.map(n => <option key={n.to} value={n.to}>{n.label}</option>)}
           </select>

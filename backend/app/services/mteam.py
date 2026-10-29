@@ -36,13 +36,44 @@ CATEGORY_PREFIXES = {
     "409": "software", "410": "game", "411": "eBook",
     "412": "ai", "413": "course", "414": "other",
 }
-# 界面一级分类 -> M-Team 分类码（影视相关）
-UI_CATEGORY_MAP = {
-    "movie": ["401"],
-    "tv": ["402"],
-    "anime": ["403"],
-    "show": ["404"],  # 综艺
-}
+# M-Team 站点真实分类（与站点 categoryList 对应；来源为站点公开分类结构，
+# 运行时可通过 refresh_categories() 以站点返回动态刷新）
+MT_CATEGORY_GROUPS: list[dict] = [
+    {"key": "movie", "name": "电影", "codes": ["401", "419", "420", "421", "439"],
+     "children": [{"code": "401", "name": "电影 SD"}, {"code": "419", "name": "电影 HD"},
+                   {"code": "420", "name": "DVDiSo"}, {"code": "421", "name": "Blu-Ray"},
+                   {"code": "439", "name": "Remux"}]},
+    {"key": "tv", "name": "影剧/综艺", "codes": ["403", "402", "435", "438"],
+     "children": [{"code": "403", "name": "SD"}, {"code": "402", "name": "HD"},
+                   {"code": "435", "name": "DVDiSo"}, {"code": "438", "name": "BD"}]},
+    {"key": "anime", "name": "动画", "codes": ["405"],
+     "children": []},
+    {"key": "doc", "name": "纪录", "codes": ["404"], "children": []},
+    {"key": "music", "name": "音乐", "codes": ["434", "406"],
+     "children": [{"code": "434", "name": "无损"}, {"code": "406", "name": "演唱会"}]},
+    {"key": "sport", "name": "体育", "codes": ["407"], "children": []},
+    {"key": "game", "name": "游戏", "codes": ["423", "448"],
+     "children": [{"code": "423", "name": "PC游戏"}, {"code": "448", "name": "TV游戏"}]},
+    {"key": "other", "name": "其他", "codes": ["427", "442", "451", "422", "409"],
+     "children": [{"code": "427", "name": "电子书"}, {"code": "442", "name": "有声书"},
+                   {"code": "451", "name": "教育影片"}, {"code": "422", "name": "软件"},
+                   {"code": "409", "name": "杂项"}]},
+]
+
+# 界面分组键 -> 旧版兼容映射（历史数据）
+UI_CATEGORY_MAP = {g["key"]: g["codes"] for g in MT_CATEGORY_GROUPS}
+
+
+def category_codes_of(category: str) -> list[str] | None:
+    """分类参数（分组键或具体码）-> M-Team 分类码列表。all/空返回 None（不限）。"""
+    if not category or category == "all":
+        return None
+    if category.isdigit():
+        return [category]
+    for g in MT_CATEGORY_GROUPS:
+        if g["key"] == category:
+            return g["codes"]
+    return None
 
 
 class MTeamError(Exception):
@@ -157,13 +188,15 @@ class MTeamClient:
     """单账号客户端。凭据仅在服务端内存中使用，不写日志。"""
 
     def __init__(self, api_key: str, api_url: str = "https://api.m-team.cc",
-                 limiter: RateLimiter | None = None, timeout: float = 25.0):
+                 limiter: RateLimiter | None = None, timeout: float = 25.0,
+                 proxy: str = ""):
         self.api_key = api_key
         self.base = (api_url or "https://api.m-team.cc").rstrip("/")
         if not self.base.endswith("/api"):
             self.base = self.base + "/api"
         self.limiter = limiter or RateLimiter()
         self.timeout = timeout
+        self.proxy = (proxy or "").strip()
         self._client: httpx.AsyncClient | None = None
 
     async def _http(self) -> httpx.AsyncClient:
@@ -172,6 +205,7 @@ class MTeamClient:
                 headers={"x-api-key": self.api_key, "Accept": "application/json"},
                 timeout=self.timeout,
                 follow_redirects=True,
+                proxy=self.proxy or None,  # 支持 http:// socks5:// 等（socks 需额外依赖）
             )
         return self._client
 
@@ -291,6 +325,9 @@ class MTeamClient:
     async def category_list(self) -> list[dict]:
         data = await self._request("torrent/categoryList")
         return data if isinstance(data, list) else []
+
+    def _socks_note(self) -> str:
+        return "socks5 代理需要额外依赖，建议使用 http 代理" if self.proxy.startswith("socks") else ""
 
     async def collection_toggle(self, torrent_id: str, make: bool) -> None:
         await self._request("torrent/collection",

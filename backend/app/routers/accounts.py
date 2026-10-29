@@ -50,7 +50,8 @@ def list_accounts():
 @router.post("", status_code=201)
 async def create_account(body: AccountIn):
     # 先验证再入库
-    client = MTeamClient(body.api_key, body.api_url)
+    proxy = (get_setting("mteam_global") or {}).get("proxy") or ""
+    client = MTeamClient(body.api_key, body.api_url, proxy=proxy)
     try:
         profile = await client.member_profile()
     except MTeamError as e:
@@ -118,7 +119,8 @@ async def test_account(account_id: int):
                            (account_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "账号不存在")
-    client = MTeamClient(decrypt(row["api_key_enc"]), row["api_url"])
+    proxy = (get_setting("mteam_global") or {}).get("proxy") or ""
+    client = MTeamClient(decrypt(row["api_key_enc"]), row["api_url"], proxy=proxy)
     try:
         profile = await client.member_profile()
     except MTeamError as e:
@@ -137,7 +139,8 @@ async def sync_account(account_id: int):
                            (account_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "账号不存在")
-    client = MTeamClient(decrypt(row["api_key_enc"]), row["api_url"])
+    proxy = (get_setting("mteam_global") or {}).get("proxy") or ""
+    client = MTeamClient(decrypt(row["api_key_enc"]), row["api_url"], proxy=proxy)
     try:
         profile = await client.member_profile()
         with db() as conn:

@@ -329,9 +329,11 @@ def api_client(mock_mteam):
     from app.services.mteam import MTeamClient, RateLimiter
     original_init = MTeamClient.__init__
 
-    def patched_init(self, api_key, api_url="https://api.m-team.cc", limiter=None, timeout=25.0):
-        original_init(self, api_key, mock_mteam, limiter or RateLimiter(min_interval=0.01),
-                      timeout=timeout)
+    def patched_init(self, api_key, api_url="https://api.m-team.cc", limiter=None,
+                     timeout=25.0, proxy=""):
+        original_init(self, api_key, mock_mteam,
+                      limiter or RateLimiter(min_interval=0.01), timeout=timeout,
+                      proxy=proxy)
 
     MTeamClient.__init__ = patched_init
     try:

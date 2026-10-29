@@ -44,7 +44,7 @@ type ToastFn = (msg: string, kind?: 'ok' | 'warn' | 'error' | 'info') => void
 
 /* ================= A. 馒头账号全局 ================= */
 function MtSection({ toast }: { toast: ToastFn }) {
-  const [cfg, setCfg] = useState({ request_interval: 4, account_sync_interval: 600 })
+  const [cfg, setCfg] = useState({ request_interval: 4, account_sync_interval: 600, proxy: '' })
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     get('/api/settings/mteam').then(setCfg).catch(() => {})
@@ -66,6 +66,13 @@ function MtSection({ toast }: { toast: ToastFn }) {
       <label className="field"><span>账号资料自动同步间隔（秒）</span>
         <input type="number" min="60" max="86400" value={cfg.account_sync_interval}
           onChange={e => setCfg({ ...cfg, account_sync_interval: Number(e.target.value) })} /></label>
+      <label className="field"><span>网络代理（可选，推荐 HTTP 代理）</span>
+        <input value={cfg.proxy} placeholder="例如 http://192.168.0.1:7890"
+          onChange={e => setCfg({ ...cfg, proxy: e.target.value.trim() })} />
+        <div className="help">
+          NAS 无法直连 M-Team（Cloudflare 间歇阻断）时，在此填写局域网代理地址（如
+          Clash/v2ray 的 HTTP 端口）后保存；留空为直连。修改后账号连接测试、搜索与下载都会走代理。
+        </div></label>
       <button className="btn btn-primary" disabled={saving} onClick={save}>保存</button>
       <div className="help" style={{ marginTop: 10 }}>
         账号的增删改请在「账号中心」操作；API Key 加密存储于 NAS 本地，不会暴露到浏览器或日志。

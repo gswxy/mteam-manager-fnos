@@ -18,7 +18,7 @@ from .config import settings
 from .database import add_event, init_db
 from .routers import accounts, discover, downloads, settings as settings_router, system
 from .services import download_manager
-from .services.scheduler import scheduler
+from .services import scheduler as scheduler_svc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,13 +32,12 @@ logger = logging.getLogger("mteam-manager")
 async def lifespan(app: FastAPI):
     init_db()
     _import_wizard_setup()
-    scheduler.start()
+    scheduler_svc.start()
     add_event("info", "system", f"馒头管家启动（v{__version__}）")
     logger.info("mteam-manager v%s started, data=%s", __version__, settings.data_dir)
     yield
-    from .services.scheduler import stop as stop_scheduler
     try:
-        stop_scheduler()
+        scheduler_svc.stop()
     except Exception:  # noqa: BLE001 - 关闭阶段任何异常都不应阻断退出
         logger.warning("scheduler stop error", exc_info=True)
     try:

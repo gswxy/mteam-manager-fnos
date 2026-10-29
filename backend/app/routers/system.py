@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from .. import __version__
 from ..database import db
 from ..security import current_user, issue_ticket, user_from_ticket
-from ..services.scheduler import scheduler
+from ..services.scheduler import scheduler as _scheduler_mod
 
 router = APIRouter(prefix="/api", tags=["system"])
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api", tags=["system"])
 def health():
     """无认证健康检查（生命周期监控用）。"""
     return {"ok": True, "version": __version__,
-            "scheduler_running": scheduler.running}
+            "scheduler_running": _scheduler_mod.running}
 
 
 @router.get("/me")

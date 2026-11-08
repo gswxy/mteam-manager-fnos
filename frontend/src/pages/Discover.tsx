@@ -224,12 +224,12 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      {coverage && !q && (
+      {coverage && (
         <div style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 2px 12px' }}>ⓘ {coverage}</div>
       )}
 
       {loading ? <Spinner /> : items.length === 0 ? (
-        <Empty text={q ? '没有匹配的结果，换个关键词试试' : '暂无缓存数据，请先添加账号后点击搜索或刷新'} />
+        <Empty text={q.trim() ? `没有找到「${q.trim()}」的相关资源，换个关键词试试` : '暂无缓存数据，请先添加账号后点击搜索或刷新'} />
       ) : (
         <>
           <div className="media-grid">

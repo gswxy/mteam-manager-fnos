@@ -113,7 +113,10 @@ STATIC_DIR = Path(os.environ.get("MTM_STATIC_DIR",
 async def index():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={
+            # SPA 入口禁止缓存，避免升级后浏览器驻留旧版前端（资源文件带 hash 可长缓存）
+            "Cache-Control": "no-cache, must-revalidate",
+        })
     return JSONResponse({"app": "馒头管家", "version": __version__,
                          "hint": "前端资源未构建，API 正常运行"})
 
@@ -130,7 +133,9 @@ async def spa(full_path: str):
         return FileResponse(target)
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={
+            "Cache-Control": "no-cache, must-revalidate",
+        })
     return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 

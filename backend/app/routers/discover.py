@@ -34,12 +34,23 @@ async def search(q: str = Query("", max_length=120),
     categories = category_codes_of(category)
     mt = manager.mteam(account_id)
     try:
-        await discover.search_and_cache(mt, q, categories=categories, discount=discount)
+        result = await discover.search_and_cache(mt, q, categories=categories, discount=discount)
     except MTeamError as e:
         raise HTTPException(502, f"M-Team 搜索失败：{e}")
-    data = discover.browse("latest", category, page, page_size)
-    data["keyword"] = q
-    return data
+    # 关键：返回本次搜索命中的种子聚合结果（而不是全局缓存榜单），
+    # 否则界面会继续显示旧的最新列表，看起来像“搜索没反应”
+    groups = discover.aggregate(result["torrents"])
+    groups.sort(key=lambda g: g["created_date"] or "", reverse=True)
+    total = len(groups)
+    start = (page - 1) * page_size
+    return {
+        "items": groups[start:start + page_size],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "keyword": q,
+        "coverage": f"M-Team 站点实时搜索「{q}」命中 {total} 部（按资源发布时间排序）",
+    }
 
 
 @router.get("/categories")
